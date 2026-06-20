@@ -1,0 +1,23 @@
+{
+  "mappings": {
+    "properties": {
+      "id": { "type": "keyword" },
+      "title": {
+        "type": "text",
+        "analyzer": "standard",
+        "fields": { "keyword": { "type": "keyword" } }
+      },
+      "body": {
+        "type": "text",
+        "analyzer": "standard"
+      },
+      "tags": { "type": "keyword" },
+      "service": { "type": "keyword" },
+      "lastUpdated": { "type": "date" }
+    }
+  },
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 1
+  }
+}

@@ -19,21 +19,28 @@ import com.incidentiq.core.dto.response.IncidentResponse;
 import com.incidentiq.core.dto.response.PageResponse;
 import com.incidentiq.core.exception.IncidentNotFoundException;
 import com.incidentiq.core.exception.ValidationException;
+import com.incidentiq.core.kafka.producer.IncidentEventProducer;
 import com.incidentiq.core.mapper.IncidentMapper;
 import com.incidentiq.core.repository.jpa.IncidentCommentRepository;
 import com.incidentiq.core.repository.jpa.IncidentHistoryRepository;
 import com.incidentiq.core.repository.jpa.IncidentRepository;
 import com.incidentiq.core.repository.jpa.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
 public class IncidentService {
+
+    private static final Logger log = LoggerFactory.getLogger(IncidentService.class);
 
     private final IncidentRepository incidentRepository;
     private final UserRepository userRepository;
@@ -41,16 +48,21 @@ public class IncidentService {
     private final IncidentCommentRepository commentRepository;
     private final IncidentMapper mapper;
     private final IncidentCacheService cacheService;
+    private final ElasticsearchIndexService esIndexService;
+    private final IncidentEventProducer eventProducer;
 
     public IncidentService(IncidentRepository incidentRepository, UserRepository userRepository,
                            IncidentHistoryRepository historyRepository, IncidentCommentRepository commentRepository,
-                           IncidentMapper mapper, IncidentCacheService cacheService) {
+                           IncidentMapper mapper, IncidentCacheService cacheService,
+                           ElasticsearchIndexService esIndexService, IncidentEventProducer eventProducer) {
         this.incidentRepository = incidentRepository;
         this.userRepository = userRepository;
         this.historyRepository = historyRepository;
         this.commentRepository = commentRepository;
         this.mapper = mapper;
         this.cacheService = cacheService;
+        this.esIndexService = esIndexService;
+        this.eventProducer = eventProducer;
     }
 
     @Transactional
@@ -65,9 +77,12 @@ public class IncidentService {
                 .build();
 
         incident = incidentRepository.save(incident);
+        esIndexService.indexIncident(incident);
         IncidentResponse response = mapper.toResponse(incident);
         cacheService.cacheIncident(response);
         cacheService.bumpListVersion();
+
+        publishCreatedSafely(incident);
         return response;
     }
 
@@ -77,20 +92,25 @@ public class IncidentService {
         User actingUser = userRepository.findById(actingUserId)
                 .orElseThrow(() -> new ValidationException("Acting user not found"));
 
+        List<String> changedFields = new ArrayList<>();
+
         if (request.title() != null) {
             recordHistory(incident, actingUser, "title", incident.getTitle(), request.title());
             incident.setTitle(request.title().strip());
+            changedFields.add("title");
         }
 
         if (request.description() != null) {
             recordHistory(incident, actingUser, "description", incident.getDescription(), request.description());
             incident.setDescription(request.description().strip());
+            changedFields.add("description");
         }
 
         if (request.status() != null && request.status() != incident.getStatus()) {
             validateStatusTransition(incident.getStatus(), request.status(), actingRole);
             recordHistory(incident, actingUser, "status", incident.getStatus().name(), request.status().name());
             incident.setStatus(request.status());
+            changedFields.add("status");
         }
 
         if (request.assigneeId() != null) {
@@ -99,12 +119,16 @@ public class IncidentService {
             String oldAssignee = incident.getAssignee() != null ? incident.getAssignee().getId().toString() : null;
             recordHistory(incident, actingUser, "assignee", oldAssignee, assignee.getId().toString());
             incident.setAssignee(assignee);
+            changedFields.add("assignee");
         }
 
         incident = incidentRepository.save(incident);
+        esIndexService.indexIncident(incident);
         IncidentResponse response = mapper.toResponse(incident);
         cacheService.onIncidentWrite(incidentId);
         cacheService.cacheIncident(response);
+
+        publishUpdatedSafely(incident, changedFields);
         return response;
     }
 
@@ -123,9 +147,12 @@ public class IncidentService {
         recordHistory(incident, actingUser, "resolutionNotes", null, request.resolutionNotes());
 
         incident = incidentRepository.save(incident);
+        esIndexService.indexIncident(incident);
         IncidentResponse response = mapper.toResponse(incident);
         cacheService.onIncidentWrite(incidentId);
         cacheService.cacheIncident(response);
+
+        publishUpdatedSafely(incident, List.of("status"));
         return response;
     }
 
@@ -139,6 +166,8 @@ public class IncidentService {
         incident.setStatus(IncidentStatus.CLOSED);
         incidentRepository.save(incident);
         cacheService.onIncidentWrite(incidentId);
+
+        publishUpdatedSafely(incident, List.of("status"));
     }
 
     @Transactional(readOnly = true)
@@ -235,5 +264,23 @@ public class IncidentService {
                 .changedBy(changedBy)
                 .build();
         historyRepository.save(history);
+    }
+
+    private void publishCreatedSafely(Incident incident) {
+        try {
+            eventProducer.publishCreated(incident);
+        } catch (Exception e) {
+            log.error("Kafka publish failed for incident.created {}. Incident persisted successfully — publish can be retried.",
+                    incident.getId(), e);
+        }
+    }
+
+    private void publishUpdatedSafely(Incident incident, List<String> changedFields) {
+        try {
+            eventProducer.publishUpdated(incident, changedFields);
+        } catch (Exception e) {
+            log.error("Kafka publish failed for incident.updated {}. Incident persisted successfully — publish can be retried.",
+                    incident.getId(), e);
+        }
     }
 }

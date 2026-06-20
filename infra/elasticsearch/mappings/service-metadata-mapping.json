@@ -1,0 +1,15 @@
+{
+  "mappings": {
+    "properties": {
+      "serviceName": { "type": "keyword" },
+      "owner": { "type": "keyword" },
+      "tier": { "type": "keyword" },
+      "dependencies": { "type": "keyword" },
+      "description": { "type": "text" }
+    }
+  },
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 1
+  }
+}
