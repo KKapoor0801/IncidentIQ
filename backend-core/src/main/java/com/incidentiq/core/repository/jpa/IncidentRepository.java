@@ -35,4 +35,6 @@ public interface IncidentRepository extends JpaRepository<Incident, UUID> {
             Pageable pageable);
 
     long countByStatus(IncidentStatus status);
+
+    long countByPriority(IncidentPriority priority);
 }
