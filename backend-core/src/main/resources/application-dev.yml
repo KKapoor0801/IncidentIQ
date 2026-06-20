@@ -1,0 +1,12 @@
+spring:
+  jpa:
+    show-sql: true
+
+  docker:
+    compose:
+      enabled: false
+
+logging:
+  level:
+    com.incidentiq.core: DEBUG
+    org.springframework.security: DEBUG

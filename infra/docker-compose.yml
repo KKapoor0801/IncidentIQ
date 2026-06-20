@@ -1,0 +1,149 @@
+services:
+  # ---------- Application Tier ----------
+  incidentiq-frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: incidentiq-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - incidentiq-core
+    networks:
+      - incidentiq-net
+
+  incidentiq-core:
+    build:
+      context: ../backend-core
+      dockerfile: Dockerfile
+    container_name: incidentiq-core
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://incidentiq-postgres:5432/incidentiq
+      DB_USERNAME: incidentiq
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: incidentiq-redis
+      REDIS_PORT: 6379
+      ES_URIS: http://incidentiq-elasticsearch:9200
+      KAFKA_BOOTSTRAP_SERVERS: incidentiq-kafka:9092
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN}
+      CORS_ALLOWED_ORIGINS: http://localhost
+    depends_on:
+      incidentiq-postgres:
+        condition: service_started
+      incidentiq-redis:
+        condition: service_started
+      incidentiq-elasticsearch:
+        condition: service_started
+      incidentiq-kafka:
+        condition: service_started
+    networks:
+      - incidentiq-net
+
+  incidentiq-ai:
+    build:
+      context: ../ai-service
+      dockerfile: Dockerfile
+    container_name: incidentiq-ai
+    ports:
+      - "8000:8000"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: incidentiq-kafka:9092
+      CORE_SERVICE_URL: http://incidentiq-core:8080
+      OLLAMA_BASE_URL: http://incidentiq-ollama:11434
+      ES_URIS: http://incidentiq-elasticsearch:9200
+      AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN}
+    depends_on:
+      - incidentiq-kafka
+      - incidentiq-ollama
+      - incidentiq-elasticsearch
+    networks:
+      - incidentiq-net
+
+  # ---------- Data Tier ----------
+  incidentiq-postgres:
+    image: postgres:16
+    container_name: incidentiq-postgres
+    environment:
+      POSTGRES_DB: incidentiq
+      POSTGRES_USER: incidentiq
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-incidentiq}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - incidentiq-net
+
+  incidentiq-redis:
+    image: redis:7-alpine
+    container_name: incidentiq-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - incidentiq-net
+
+  incidentiq-elasticsearch:
+    image: elasticsearch:8.15.0
+    container_name: incidentiq-elasticsearch
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    networks:
+      - incidentiq-net
+
+  # ---------- Messaging Tier ----------
+  incidentiq-zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: incidentiq-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - incidentiq-net
+
+  incidentiq-kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: incidentiq-kafka
+    depends_on:
+      - incidentiq-zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: incidentiq-zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://incidentiq-kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    networks:
+      - incidentiq-net
+
+  # ---------- AI Runtime Tier ----------
+  incidentiq-ollama:
+    image: ollama/ollama:latest
+    container_name: incidentiq-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    networks:
+      - incidentiq-net
+
+volumes:
+  postgres-data:
+  esdata:
+  ollama-models:
+
+networks:
+  incidentiq-net:
+    driver: bridge

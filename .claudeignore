@@ -1,0 +1,55 @@
+# Build artifacts & dependency caches
+node_modules/
+target/
+dist/
+build/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Java/Maven
+*.class
+*.jar
+.mvn/
+mvnw
+mvnw.cmd
+
+# Frontend
+.vite/
+*.tsbuildinfo
+coverage/
+
+# Docker / infra volumes (mounted data, not source)
+infra/.docker-volumes/
+postgres-data/
+esdata/
+ollama-models/
+
+# Logs
+*.log
+logs/
+
+# Env & secrets — never read into context
+.env
+.env.local
+*.pem
+*.key
+
+# IDE / OS noise
+.idea/
+.vscode/
+.DS_Store
+*.swp
+
+# Lockfiles (large, rarely need full content — read on demand only if needed)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+poetry.lock
+
+# Git internals
+.git/
