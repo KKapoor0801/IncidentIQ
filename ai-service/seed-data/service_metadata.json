@@ -1,0 +1,72 @@
+[
+  {
+    "serviceName": "payment-service",
+    "owner": "payments-team",
+    "tier": "critical",
+    "dependencies": ["stripe-api", "postgres", "redis", "kafka"],
+    "description": "Handles checkout, payment processing, and refunds via Stripe"
+  },
+  {
+    "serviceName": "auth-service",
+    "owner": "platform-team",
+    "tier": "critical",
+    "dependencies": ["postgres", "redis"],
+    "description": "SSO authentication, JWT issuance, token refresh, and RBAC"
+  },
+  {
+    "serviceName": "notification-service",
+    "owner": "platform-team",
+    "tier": "standard",
+    "dependencies": ["kafka", "sendgrid-api", "twilio-api"],
+    "description": "Email, SMS, and push notifications triggered by system events"
+  },
+  {
+    "serviceName": "search-service",
+    "owner": "search-team",
+    "tier": "standard",
+    "dependencies": ["elasticsearch", "redis"],
+    "description": "Product and content search powered by Elasticsearch"
+  },
+  {
+    "serviceName": "billing-service",
+    "owner": "payments-team",
+    "tier": "critical",
+    "dependencies": ["postgres", "payment-service", "stripe-api"],
+    "description": "Subscription management, invoicing, and billing cycle processing"
+  },
+  {
+    "serviceName": "order-service",
+    "owner": "commerce-team",
+    "tier": "critical",
+    "dependencies": ["postgres", "kafka", "payment-service", "inventory-service"],
+    "description": "Order lifecycle management from placement through fulfillment"
+  },
+  {
+    "serviceName": "inventory-service",
+    "owner": "commerce-team",
+    "tier": "standard",
+    "dependencies": ["postgres", "redis", "kafka"],
+    "description": "Stock tracking, reservation, and warehouse integration"
+  },
+  {
+    "serviceName": "api-gateway",
+    "owner": "platform-team",
+    "tier": "critical",
+    "dependencies": ["redis", "auth-service"],
+    "description": "Public API ingress, rate limiting, and request routing"
+  },
+  {
+    "serviceName": "analytics-service",
+    "owner": "data-team",
+    "tier": "low",
+    "dependencies": ["kafka", "clickhouse", "redis"],
+    "description": "Event ingestion, aggregation, and reporting dashboards"
+  },
+  {
+    "serviceName": "webhook-service",
+    "owner": "platform-team",
+    "tier": "standard",
+    "dependencies": ["kafka", "postgres", "redis"],
+    "description": "Outbound webhook delivery with retry and dead-letter handling"
+  }
+]
