@@ -3,6 +3,10 @@
 *.iml
 .vscode/
 
+# Claude Code
+.claude/
+.claudeignore
+
 # OS
 .DS_Store
 Thumbs.db

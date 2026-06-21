@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import Markdown from 'react-markdown';
 import { incidentsApi } from '@/api/incidents';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/components/ui/Toast';
@@ -23,6 +24,20 @@ function formatDateTime(iso: string): string {
 }
 
 const AI_POLL_TIMEOUT_MS = 120_000;
+
+function extractSuggestionText(raw: string): string {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed === 'object' && parsed !== null) {
+      const values = Object.values(parsed as Record<string, unknown>);
+      const text = values.find((v) => typeof v === 'string') as string | undefined;
+      if (text) return text;
+    }
+  } catch {
+    // not JSON — return as-is
+  }
+  return raw;
+}
 
 function AiSection({ incidentId, aiProcessed, category, priority, confidenceScore, suggestion }: {
   incidentId: string;
@@ -135,9 +150,9 @@ function AiSection({ incidentId, aiProcessed, category, priority, confidenceScor
             <p className="mb-1 text-xs font-medium uppercase tracking-wider text-gray-500">
               Resolution Suggestion
             </p>
-            <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-              {suggestion}
-            </p>
+            <div className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300">
+              <Markdown>{extractSuggestionText(suggestion)}</Markdown>
+            </div>
           </div>
         )}
       </div>

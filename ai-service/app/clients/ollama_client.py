@@ -31,7 +31,9 @@ class OllamaClient:
         retry=retry_if_exception_type((OllamaTimeoutError, httpx.ConnectError)),
         reraise=True,
     )
-    async def generate(self, prompt: str, system_prompt: str = "") -> str:
+    async def generate(
+        self, prompt: str, system_prompt: str = "", json_format: bool = False,
+    ) -> str:
         logger.debug("ollama_request_starting", model=self._model)
         start = time.monotonic()
         try:
@@ -40,8 +42,9 @@ class OllamaClient:
                     "model": self._model,
                     "prompt": prompt,
                     "stream": False,
-                    "format": "json",
                 }
+                if json_format:
+                    payload["format"] = "json"
                 if system_prompt:
                     payload["system"] = system_prompt
 
@@ -73,9 +76,9 @@ class OllamaClient:
             ) from e
 
     async def generate_json(
-        self, prompt: str, system_prompt: str = ""
+        self, prompt: str, system_prompt: str = "",
     ) -> dict[str, object]:
-        raw = await self.generate(prompt, system_prompt)
+        raw = await self.generate(prompt, system_prompt, json_format=True)
         try:
             return dict(json.loads(raw))
         except json.JSONDecodeError:

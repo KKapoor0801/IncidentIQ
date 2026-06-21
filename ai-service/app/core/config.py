@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     ai_service_token: str = ""
 
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "llama3.1:8b"
-    ollama_timeout_ms: int = 30000
+    ollama_model: str = "llama3.2:3b"
+    ollama_timeout_ms: int = 60000
 
     es_uris: str = "http://localhost:9200"
 

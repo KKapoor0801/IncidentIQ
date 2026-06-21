@@ -16,13 +16,17 @@ interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isInitializing: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, fullName: string) => Promise<void>;
   logout: () => void;
   refreshAccessToken: () => Promise<string | null>;
+  initializeFromStorage: () => Promise<void>;
   clearError: () => void;
 }
+
+const REFRESH_TOKEN_KEY = 'incidentiq_refresh_token';
 
 function decodeJwt(token: string): JwtPayload {
   const base64Url = token.split('.')[1];
@@ -47,6 +51,18 @@ function userFromToken(token: string): AuthUser {
   };
 }
 
+function persistRefreshToken(token: string | null) {
+  if (token) {
+    localStorage.setItem(REFRESH_TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+  }
+}
+
+function getStoredRefreshToken(): string | null {
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
 export const useAuthStore = create<AuthState>((set, get) => {
   const store: AuthState = {
     accessToken: null,
@@ -54,6 +70,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
     user: null,
     isAuthenticated: false,
     isLoading: false,
+    isInitializing: true,
     error: null,
 
     async login(email: string, password: string) {
@@ -61,6 +78,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       try {
         const { data } = await authApi.login({ email, password });
         const user = userFromToken(data.accessToken);
+        persistRefreshToken(data.refreshToken);
         set({
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
@@ -80,6 +98,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       try {
         const { data } = await authApi.register({ email, password, fullName });
         const user = userFromToken(data.accessToken);
+        persistRefreshToken(data.refreshToken);
         set({
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
@@ -99,6 +118,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       if (token) {
         authApi.logout().catch(() => {});
       }
+      persistRefreshToken(null);
       set({
         accessToken: null,
         refreshToken: null,
@@ -109,7 +129,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
     },
 
     async refreshAccessToken() {
-      const currentRefreshToken = get().refreshToken;
+      const currentRefreshToken = get().refreshToken ?? getStoredRefreshToken();
       if (!currentRefreshToken) {
         get().logout();
         return null;
@@ -117,6 +137,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       try {
         const { data } = await authApi.refresh({ refreshToken: currentRefreshToken });
         const user = userFromToken(data.accessToken);
+        persistRefreshToken(data.refreshToken);
         set({
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
@@ -127,6 +148,29 @@ export const useAuthStore = create<AuthState>((set, get) => {
       } catch {
         get().logout();
         return null;
+      }
+    },
+
+    async initializeFromStorage() {
+      const storedRefreshToken = getStoredRefreshToken();
+      if (!storedRefreshToken) {
+        set({ isInitializing: false });
+        return;
+      }
+      try {
+        const { data } = await authApi.refresh({ refreshToken: storedRefreshToken });
+        const user = userFromToken(data.accessToken);
+        persistRefreshToken(data.refreshToken);
+        set({
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken,
+          user,
+          isAuthenticated: true,
+          isInitializing: false,
+        });
+      } catch {
+        persistRefreshToken(null);
+        set({ isInitializing: false });
       }
     },
 
