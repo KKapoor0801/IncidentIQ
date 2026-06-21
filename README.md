@@ -2,6 +2,24 @@
 
 An AI-powered Incident Intelligence Platform that automatically categorizes, prioritizes, and suggests resolutions for operational incidents using a local LLM (Ollama). Built as a polyglot, event-driven system with a React frontend, Spring Boot core service, FastAPI AI worker, and Kafka-based async processing.
 
+## Impact & Engineering Highlights
+
+- **Automated incident triage** by classifying incidents into a 6-class taxonomy and assigning P1–P4 priority with confidence scoring via a local LLM, eliminating manual categorization bottleneck during on-call rotations
+- **Maintained < 200ms incident creation latency** (observed 10–50ms in testing) by designing a fully async AI pipeline using Kafka (6 partitions, keyed by incidentId for ordering guarantees), decoupling LLM inference (3–15s per call, ~25s total pipeline) from the synchronous user-facing API path
+- **Built a keyword-matched resolution suggestion engine** querying Elasticsearch across 12 runbooks and 25 historical incidents with multi_match (title^2 boost), then prompting the LLM with matched context — delivering actionable remediation steps within 20–30s of incident creation
+- **Architected a polyglot, event-driven system** spanning 4 tiers (React 19, Spring Boot 4 / Java 21, Python FastAPI, Kafka) with 9 containerized services, supporting horizontal scaling of AI workers up to 6 concurrent consumers (matching Kafka partition count)
+- **Reduced DB read load on hot paths** using Redis cache-aside pattern: incident detail cache (10min TTL), paginated list cache (30s TTL with monotonic version-counter invalidation — zero wildcard key scans), and dashboard aggregate cache refreshed every 60s via `@Scheduled`
+- **Designed at-least-once AI processing guarantee** via self-healing failure pipeline: Kafka DLQ captures failed events with full error context, scheduled reprocessing job retries `aiProcessed=false` incidents every 5 min, circuit breaker (3 retries, exponential backoff) on all cross-service calls
+- **Implemented stateless JWT auth with refresh token rotation** using HS256 signing, Redis-backed blacklist (TTL = remaining token life), refresh token rotation on every use (7-day expiry), and BCrypt cost-12 password hashing — access tokens in-memory only (never localStorage), silent refresh on 401
+- **Enforced incident state machine** (OPEN → IN_PROGRESS → RESOLVED → CLOSED) with RBAC-gated transitions across 3 roles (VIEWER/ENGINEER/ADMIN), optimistic locking (`@Version`) mapped to 409 CONFLICT preventing concurrent update data loss
+- **Built complete audit trail** — every status, priority, assignee, and resolution change recorded in `incident_history` with acting userId and timestamp, supporting compliance requirements and post-incident reviews
+- **Implemented end-to-end distributed tracing** via X-Trace-Id propagated through HTTP request → Spring Boot MDC → Kafka event payload → FastAPI structlog context → REST callback, enabling single-ID correlation across all services
+- **Designed and built a responsive React 19 SPA** with Tailwind CSS, React Query (30s stale time), Zustand for auth/theme state, role-gated UI controls, dark mode (system preference + manual toggle), Cmd+K search with debounced ES queries, and AI polling with 120s timeout fallback
+- **Implemented Redis-backed rate limiting** using token bucket pattern (INCR + EXPIRE, 10 req/60s rolling window) on incident creation and login endpoints, preventing brute-force and abuse without external API gateway dependency
+- **Integrated Elasticsearch 9 for full-text keyword search** with async indexing on write (`@Async`) and graceful empty-index handling — no embeddings, no vector DB (intentionally deferred to MVP2)
+- **Built idempotent seed data pipeline** — single Python script indexes 12 runbooks + 10 service metadata entries to ES and 25 historical incidents to Postgres using deterministic IDs (`ON CONFLICT DO NOTHING`), safe for repeated execution
+- **Produced complete OpenAPI documentation** with springdoc-openapi, Swagger UI at `/swagger-ui.html`, 6 tag groups, bearerAuth security scheme, and `/internal/**` paths excluded from public spec
+
 ## Screenshots
 
 ### Incident List — Dashboard View
