@@ -6,13 +6,13 @@ An AI-powered Incident Intelligence Platform that automatically categorizes, pri
 
 ### Incident List — Dashboard View
 
-![Incident List](docs/images/img_1.png)
+![Incident List](docs/images/image-1782071132745.webp)
 
 The main incidents view shows all incidents in a sortable, filterable table with color-coded status badges (Open, Resolved) and priority indicators (P1-Critical, P2-High). Users can filter by status and priority, search with Cmd+K, and create new incidents. The table displays AI-assigned category (PAYMENTS, DATABASE, INFRA, etc.) and the original reporter. Seed data from resolved historical incidents appears alongside user-created ones.
 
 ### Incident Detail — AI Analysis & Resolution
 
-![Incident Detail](docs/images/img.png)
+![Incident Detail](docs/images/image-1782071099806.webp)
 
 The detail view shows the full incident with its AI-generated analysis. After an incident is created, the AI pipeline asynchronously processes it and populates:
 - **Category** — automatically classified (e.g., PAYMENTS for a payment-related OOM issue)
