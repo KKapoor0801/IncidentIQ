@@ -1,0 +1,29 @@
+{
+  "mappings": {
+    "properties": {
+      "id": { "type": "keyword" },
+      "title": {
+        "type": "text",
+        "analyzer": "standard",
+        "fields": { "keyword": { "type": "keyword" } }
+      },
+      "description": {
+        "type": "text",
+        "analyzer": "standard"
+      },
+      "status": { "type": "keyword" },
+      "priority": { "type": "keyword" },
+      "category": { "type": "keyword" },
+      "reporterId": { "type": "keyword" },
+      "assigneeId": { "type": "keyword" },
+      "aiResolutionSuggestion": { "type": "text" },
+      "createdAt": { "type": "date" },
+      "updatedAt": { "type": "date" },
+      "resolvedAt": { "type": "date" }
+    }
+  },
+  "settings": {
+    "number_of_shards": 3,
+    "number_of_replicas": 1
+  }
+}

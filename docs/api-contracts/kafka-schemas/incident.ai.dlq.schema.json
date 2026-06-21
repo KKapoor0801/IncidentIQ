@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "incident.ai.dlq.schema.json",
+  "title": "IncidentAiDlqEvent",
+  "description": "Published to incident.ai.dlq when AI processing fails after retry exhaustion.",
+  "type": "object",
+  "required": [
+    "eventId",
+    "originalTopic",
+    "incidentId",
+    "errorMessage",
+    "retryCount",
+    "failedAt"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this event."
+    },
+    "originalTopic": {
+      "type": "string",
+      "description": "Kafka topic the original event was consumed from.",
+      "examples": ["incident.created", "incident.updated"]
+    },
+    "incidentId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identifier of the incident that failed processing."
+    },
+    "errorMessage": {
+      "type": "string",
+      "description": "Error description from the last failed attempt."
+    },
+    "retryCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of retry attempts before routing to DLQ."
+    },
+    "failedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp of the final failure."
+    },
+    "traceId": {
+      "type": "string",
+      "description": "Distributed trace identifier propagated from the originating event. Optional for backward compatibility."
+    }
+  },
+  "additionalProperties": false
+}

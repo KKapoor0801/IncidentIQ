@@ -1,0 +1,29 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Claude Code
+.claude/
+.claudeignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ruff_cache/
+
+# Node
+node_modules/
+
+# Build outputs
+backend-core/target/
+frontend/dist/
+
+# Environment
+.env
+*.env.local

@@ -1,0 +1,86 @@
+spring:
+  application:
+    name: incidentiq-core
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/incidentiq}
+    username: ${DB_USERNAME:incidentiq}
+    password: ${DB_PASSWORD:incidentiq}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+  flyway:
+    enabled: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+    elasticsearch:
+      uris: ${ES_URIS:http://localhost:9200}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+    consumer:
+      group-id: core-ack-consumer
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.incidentiq.core.dto.event
+
+
+server:
+  port: 8080
+
+jwt:
+  access-token-secret: ${JWT_ACCESS_SECRET:dev-access-secret-key-that-is-at-least-256-bits-long-for-hs256-signing}
+  refresh-token-secret: ${JWT_REFRESH_SECRET:dev-refresh-secret-key-that-is-at-least-256-bits-long-for-hs256-signing}
+  access-token-expiry-minutes: 15
+  refresh-token-expiry-days: 7
+
+internal-service:
+  ai-callback-token: ${AI_SERVICE_TOKEN:dev-internal-service-token}
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    root: INFO
+    com.incidentiq.core: ${LOG_LEVEL:INFO}
+
+springdoc:
+  paths-to-exclude: /internal/**
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
