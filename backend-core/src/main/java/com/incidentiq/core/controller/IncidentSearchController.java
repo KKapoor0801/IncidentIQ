@@ -2,6 +2,8 @@ package com.incidentiq.core.controller;
 
 import com.incidentiq.core.dto.response.PageResponse;
 import com.incidentiq.core.service.IncidentSearchService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +25,8 @@ public class IncidentSearchController {
 
     @GetMapping("/incidents/search")
     @PreAuthorize("hasAnyRole('VIEWER', 'ENGINEER', 'ADMIN')")
+    @Tag(name = "Incident Search")
+    @Operation(summary = "Full-text search across incidents")
     public ResponseEntity<PageResponse<Map<String, Object>>> searchIncidents(
             @RequestParam("q") String query,
             @RequestParam(defaultValue = "0") int page,
@@ -32,6 +36,8 @@ public class IncidentSearchController {
 
     @GetMapping("/runbooks/search")
     @PreAuthorize("hasAnyRole('VIEWER', 'ENGINEER', 'ADMIN')")
+    @Tag(name = "Runbooks")
+    @Operation(summary = "Full-text search across runbooks")
     public ResponseEntity<PageResponse<Map<String, Object>>> searchRunbooks(
             @RequestParam("q") String query,
             @RequestParam(defaultValue = "0") int page,

@@ -29,7 +29,12 @@ public class RateLimitService {
             if (count != null && count == 1L) {
                 redisTemplate.expire(key, WINDOW_SECONDS, TimeUnit.SECONDS);
             }
-            return count != null && count > MAX_REQUESTS;
+            log.debug("Rate limit check: userId={}, endpoint={}, count={}", userId, endpoint, count);
+            if (count != null && count > MAX_REQUESTS) {
+                log.warn("Rate limit exceeded: userId={}, endpoint={}, count={}", userId, endpoint, count);
+                return true;
+            }
+            return false;
         } catch (Exception e) {
             log.warn("Rate limit check failed, allowing request: {}", e.getMessage());
             return false;

@@ -4,11 +4,15 @@ import com.incidentiq.core.domain.enums.IncidentPriority;
 import com.incidentiq.core.domain.enums.IncidentStatus;
 import com.incidentiq.core.dto.response.DashboardSummary;
 import com.incidentiq.core.repository.jpa.IncidentRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
 public class DashboardService {
+
+    private static final Logger log = LoggerFactory.getLogger(DashboardService.class);
 
     private final IncidentRepository incidentRepository;
     private final IncidentCacheService cacheService;
@@ -24,6 +28,8 @@ public class DashboardService {
         long inProgressCount = incidentRepository.countByStatus(IncidentStatus.IN_PROGRESS);
         long resolvedCount = incidentRepository.countByStatus(IncidentStatus.RESOLVED);
         long p1Count = incidentRepository.countByPriority(IncidentPriority.P1);
+        log.debug("Dashboard summary requested: open={}, inProgress={}, resolved={}, p1={}",
+                openCount, inProgressCount, resolvedCount, p1Count);
         return new DashboardSummary(openCount, inProgressCount, resolvedCount, p1Count);
     }
 
@@ -31,5 +37,6 @@ public class DashboardService {
     public void refreshDashboardCache() {
         long openCount = incidentRepository.countByStatus(IncidentStatus.OPEN);
         cacheService.cacheDashboardOpenCount(openCount);
+        log.debug("Dashboard cache refreshed: openCount={}", openCount);
     }
 }

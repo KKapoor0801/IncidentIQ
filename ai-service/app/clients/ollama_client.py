@@ -32,6 +32,7 @@ class OllamaClient:
         reraise=True,
     )
     async def generate(self, prompt: str, system_prompt: str = "") -> str:
+        logger.debug("ollama_request_starting", model=self._model)
         start = time.monotonic()
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:

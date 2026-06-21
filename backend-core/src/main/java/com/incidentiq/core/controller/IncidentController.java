@@ -15,6 +15,8 @@ import com.incidentiq.core.dto.response.PageResponse;
 import com.incidentiq.core.exception.RateLimitException;
 import com.incidentiq.core.service.IncidentService;
 import com.incidentiq.core.service.RateLimitService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -38,6 +40,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/incidents")
+@Tag(name = "Incidents")
 public class IncidentController {
 
     private final IncidentService incidentService;
@@ -50,6 +53,7 @@ public class IncidentController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ENGINEER', 'ADMIN')")
+    @Operation(summary = "Create a new incident")
     public ResponseEntity<IncidentResponse> createIncident(@Valid @RequestBody CreateIncidentRequest request,
                                                             Authentication authentication) {
         UUID reporterId = getUserId(authentication);
@@ -61,12 +65,14 @@ public class IncidentController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('VIEWER', 'ENGINEER', 'ADMIN')")
+    @Operation(summary = "Get incident by ID")
     public ResponseEntity<IncidentResponse> getIncident(@PathVariable UUID id) {
         return ResponseEntity.ok(incidentService.getIncident(id));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ENGINEER', 'ADMIN')")
+    @Operation(summary = "Update an incident")
     public ResponseEntity<IncidentResponse> updateIncident(@PathVariable UUID id,
                                                             @Valid @RequestBody UpdateIncidentRequest request,
                                                             Authentication authentication) {
@@ -75,6 +81,7 @@ public class IncidentController {
 
     @PatchMapping("/{id}/resolve")
     @PreAuthorize("hasAnyRole('ENGINEER', 'ADMIN')")
+    @Operation(summary = "Resolve an incident")
     public ResponseEntity<IncidentResponse> resolveIncident(@PathVariable UUID id,
                                                              @Valid @RequestBody ResolveIncidentRequest request,
                                                              Authentication authentication) {
@@ -83,6 +90,7 @@ public class IncidentController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Soft-delete (close) an incident")
     public ResponseEntity<Void> deleteIncident(@PathVariable UUID id, Authentication authentication) {
         incidentService.deleteIncident(id, getUserId(authentication));
         return ResponseEntity.noContent().build();
@@ -90,6 +98,7 @@ public class IncidentController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('VIEWER', 'ENGINEER', 'ADMIN')")
+    @Operation(summary = "List incidents with filters and pagination")
     public ResponseEntity<PageResponse<IncidentResponse>> listIncidents(
             @RequestParam(required = false) IncidentStatus status,
             @RequestParam(required = false) IncidentPriority priority,
@@ -102,6 +111,8 @@ public class IncidentController {
 
     @PostMapping("/{id}/comments")
     @PreAuthorize("hasAnyRole('ENGINEER', 'ADMIN')")
+    @Tag(name = "Comments")
+    @Operation(summary = "Add a comment to an incident")
     public ResponseEntity<CommentResponse> addComment(@PathVariable UUID id,
                                                        @Valid @RequestBody AddCommentRequest request,
                                                        Authentication authentication) {
@@ -110,6 +121,8 @@ public class IncidentController {
 
     @GetMapping("/{id}/comments")
     @PreAuthorize("hasAnyRole('VIEWER', 'ENGINEER', 'ADMIN')")
+    @Tag(name = "Comments")
+    @Operation(summary = "Get comments for an incident")
     public ResponseEntity<PageResponse<CommentResponse>> getComments(@PathVariable UUID id,
                                                                       @RequestParam(defaultValue = "0") int page,
                                                                       @RequestParam(defaultValue = "20") int size) {
@@ -119,6 +132,8 @@ public class IncidentController {
 
     @GetMapping("/{id}/history")
     @PreAuthorize("hasAnyRole('VIEWER', 'ENGINEER', 'ADMIN')")
+    @Tag(name = "History")
+    @Operation(summary = "Get audit history for an incident")
     public ResponseEntity<PageResponse<HistoryResponse>> getHistory(@PathVariable UUID id,
                                                                      @RequestParam(defaultValue = "0") int page,
                                                                      @RequestParam(defaultValue = "20") int size) {

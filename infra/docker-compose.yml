@@ -1,10 +1,10 @@
 services:
   # ---------- Application Tier ----------
   incidentiq-frontend:
+    container_name: incidentiq-frontend
     build:
       context: ../frontend
       dockerfile: Dockerfile
-    container_name: incidentiq-frontend
     ports:
       - "80:80"
     depends_on:
@@ -13,10 +13,10 @@ services:
       - incidentiq-net
 
   incidentiq-core:
+    container_name: incidentiq-core
     build:
       context: ../backend-core
       dockerfile: Dockerfile
-    container_name: incidentiq-core
     ports:
       - "8080:8080"
     environment:
@@ -45,10 +45,10 @@ services:
       - incidentiq-net
 
   incidentiq-ai:
+    container_name: incidentiq-ai
     build:
       context: ../ai-service
       dockerfile: Dockerfile
-    container_name: incidentiq-ai
     ports:
       - "8000:8000"
     environment:
@@ -66,8 +66,8 @@ services:
 
   # ---------- Data Tier ----------
   incidentiq-postgres:
-    image: postgres:16
     container_name: incidentiq-postgres
+    image: postgres:16
     environment:
       POSTGRES_DB: incidentiq
       POSTGRES_USER: incidentiq
@@ -80,16 +80,16 @@ services:
       - incidentiq-net
 
   incidentiq-redis:
-    image: redis:7-alpine
     container_name: incidentiq-redis
+    image: redis:7-alpine
     ports:
       - "6379:6379"
     networks:
       - incidentiq-net
 
   incidentiq-elasticsearch:
-    image: elasticsearch:9.0.2
     container_name: incidentiq-elasticsearch
+    image: elasticsearch:9.0.2
     environment:
       discovery.type: single-node
       xpack.security.enabled: "false"
@@ -103,8 +103,8 @@ services:
 
   # ---------- Messaging Tier ----------
   incidentiq-zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.0
     container_name: incidentiq-zookeeper
+    image: confluentinc/cp-zookeeper:7.6.0
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -112,12 +112,20 @@ services:
       - "2181:2181"
     networks:
       - incidentiq-net
+    healthcheck:
+      test: ["CMD", "echo", "ruok", "|", "nc", "localhost", "2181"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   incidentiq-kafka:
-    image: confluentinc/cp-kafka:7.6.0
     container_name: incidentiq-kafka
+    image: confluentinc/cp-kafka:7.6.0
     depends_on:
-      - incidentiq-zookeeper
+      incidentiq-zookeeper:
+        condition: service_healthy
+    restart: on-failure
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: incidentiq-zookeeper:2181
@@ -133,8 +141,8 @@ services:
 
   # ---------- AI Runtime Tier ----------
   incidentiq-ollama:
-    image: ollama/ollama:latest
     container_name: incidentiq-ollama
+    image: ollama/ollama:latest
     ports:
       - "11434:11434"
     volumes:

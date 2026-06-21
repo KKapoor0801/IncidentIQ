@@ -82,6 +82,10 @@ public class IncidentService {
         cacheService.cacheIncident(response);
         cacheService.bumpListVersion();
 
+        log.info("Incident created: incidentId={}, reporterId={}, title={}",
+                incident.getId(), reporterId,
+                request.title().length() > 50 ? request.title().substring(0, 50) : request.title());
+
         publishCreatedSafely(incident);
         return response;
     }
@@ -128,6 +132,8 @@ public class IncidentService {
         cacheService.onIncidentWrite(incidentId);
         cacheService.cacheIncident(response);
 
+        log.info("Incident updated: incidentId={}, changedFields={}", incidentId, changedFields);
+
         publishUpdatedSafely(incident, changedFields);
         return response;
     }
@@ -152,6 +158,8 @@ public class IncidentService {
         cacheService.onIncidentWrite(incidentId);
         cacheService.cacheIncident(response);
 
+        log.info("Incident resolved: incidentId={}, actingUserId={}", incidentId, actingUserId);
+
         publishUpdatedSafely(incident, List.of("status"));
         return response;
     }
@@ -167,6 +175,8 @@ public class IncidentService {
         incidentRepository.save(incident);
         cacheService.onIncidentWrite(incidentId);
 
+        log.info("Incident closed (soft-delete): incidentId={}, actingUserId={}", incidentId, actingUserId);
+
         publishUpdatedSafely(incident, List.of("status"));
     }
 
@@ -174,6 +184,7 @@ public class IncidentService {
     public IncidentResponse getIncident(UUID incidentId) {
         IncidentResponse cached = cacheService.getCachedIncident(incidentId);
         if (cached != null) {
+            log.debug("Incident fetched from cache: incidentId={}", incidentId);
             return cached;
         }
         IncidentResponse response = mapper.toResponse(findIncidentOrThrow(incidentId));
@@ -191,6 +202,7 @@ public class IncidentService {
         PageResponse<IncidentResponse> cached = cacheService.getCachedList(
                 statusStr, priorityStr, categoryStr, pageable.getPageNumber(), pageable.getPageSize());
         if (cached != null) {
+            log.debug("Incident list fetched from cache");
             return cached;
         }
 
@@ -214,6 +226,7 @@ public class IncidentService {
                 .build();
 
         comment = commentRepository.save(comment);
+        log.info("Comment added: incidentId={}, authorId={}", incidentId, authorId);
         return mapper.toCommentResponse(comment);
     }
 

@@ -13,13 +13,14 @@ public record IncidentUpdatedEvent(
         String description,
         boolean requiresReprocessing,
         Instant updatedAt,
-        String schemaVersion
+        String schemaVersion,
+        String traceId
 ) {
     public static IncidentUpdatedEvent from(UUID incidentId, String title, String description,
-                                             List<String> changedFields, Instant updatedAt) {
+                                             List<String> changedFields, Instant updatedAt, String traceId) {
         boolean reprocess = changedFields.contains("title") || changedFields.contains("description");
         return new IncidentUpdatedEvent(
                 UUID.randomUUID(), "INCIDENT_UPDATED", incidentId, changedFields,
-                title, description, reprocess, updatedAt, "1.0");
+                title, description, reprocess, updatedAt, "1.0", traceId);
     }
 }

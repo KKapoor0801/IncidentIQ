@@ -7,11 +7,13 @@ import com.incidentiq.core.dto.event.IncidentCreatedEvent;
 import com.incidentiq.core.dto.event.IncidentUpdatedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 public class IncidentEventProducer {
@@ -30,7 +32,8 @@ public class IncidentEventProducer {
                 incident.getTitle(),
                 incident.getDescription(),
                 incident.getReporter().getId(),
-                incident.getCreatedAt());
+                incident.getCreatedAt(),
+                resolveTraceId());
 
         String key = incident.getId().toString();
         try {
@@ -54,7 +57,8 @@ public class IncidentEventProducer {
                 incident.getTitle(),
                 incident.getDescription(),
                 changedFields,
-                incident.getUpdatedAt());
+                incident.getUpdatedAt(),
+                resolveTraceId());
 
         String key = incident.getId().toString();
         try {
@@ -78,7 +82,8 @@ public class IncidentEventProducer {
                 incident.getCategory() != null ? incident.getCategory().name() : null,
                 incident.getPriority() != null ? incident.getPriority().name() : null,
                 incident.getAiConfidenceScore(),
-                "llama3.1:8b");
+                "llama3.1:8b",
+                resolveTraceId());
 
         String key = incident.getId().toString();
         try {
@@ -93,5 +98,10 @@ public class IncidentEventProducer {
         } catch (Exception e) {
             log.error("Kafka publish failed for incident.ai.completed {}: {}", key, e.getMessage());
         }
+    }
+
+    private String resolveTraceId() {
+        String traceId = MDC.get("traceId");
+        return traceId != null ? traceId : UUID.randomUUID().toString();
     }
 }

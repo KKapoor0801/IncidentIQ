@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "incident.updated.schema.json",
+  "title": "IncidentUpdatedEvent",
+  "description": "Published to incident.updated when an incident is modified.",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "incidentId",
+    "changedFields",
+    "title",
+    "description",
+    "requiresReprocessing",
+    "updatedAt",
+    "schemaVersion"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this event."
+    },
+    "eventType": {
+      "type": "string",
+      "const": "INCIDENT_UPDATED"
+    },
+    "incidentId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identifier of the updated incident."
+    },
+    "changedFields": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of field names that changed."
+    },
+    "title": {
+      "type": "string",
+      "description": "Current incident title."
+    },
+    "description": {
+      "type": "string",
+      "description": "Current incident description."
+    },
+    "requiresReprocessing": {
+      "type": "boolean",
+      "description": "True if title or description changed, triggering AI reprocessing."
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp of the update."
+    },
+    "schemaVersion": {
+      "type": "string",
+      "description": "Payload schema version.",
+      "examples": ["1.0"]
+    },
+    "traceId": {
+      "type": "string",
+      "description": "Distributed trace identifier propagated from the originating HTTP request. Optional for backward compatibility."
+    }
+  },
+  "additionalProperties": false
+}

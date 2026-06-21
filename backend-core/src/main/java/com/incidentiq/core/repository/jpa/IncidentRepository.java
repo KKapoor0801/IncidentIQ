@@ -37,4 +37,7 @@ public interface IncidentRepository extends JpaRepository<Incident, UUID> {
     long countByStatus(IncidentStatus status);
 
     long countByPriority(IncidentPriority priority);
+
+    @Query("SELECT i FROM Incident i WHERE i.aiProcessed = false AND i.createdAt < :threshold")
+    java.util.List<Incident> findUnprocessedBefore(@Param("threshold") java.time.Instant threshold);
 }

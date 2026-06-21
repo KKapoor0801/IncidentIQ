@@ -11,12 +11,13 @@ public record IncidentCreatedEvent(
         String description,
         UUID reporterId,
         Instant createdAt,
-        String schemaVersion
+        String schemaVersion,
+        String traceId
 ) {
     public static IncidentCreatedEvent from(UUID incidentId, String title, String description,
-                                             UUID reporterId, Instant createdAt) {
+                                             UUID reporterId, Instant createdAt, String traceId) {
         return new IncidentCreatedEvent(
                 UUID.randomUUID(), "INCIDENT_CREATED", incidentId, title, description,
-                reporterId, createdAt, "1.0");
+                reporterId, createdAt, "1.0", traceId);
     }
 }

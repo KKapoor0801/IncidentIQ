@@ -12,6 +12,8 @@ import com.incidentiq.core.repository.jpa.UserRepository;
 import com.incidentiq.core.security.JwtTokenProvider;
 import com.incidentiq.core.security.SecurityConstants;
 import io.jsonwebtoken.Claims;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -38,6 +42,7 @@ public class AuthService {
 
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
+            log.warn("Registration failed — email already exists: {}", maskEmail(request.email()));
             throw new ConflictException("A user with email " + request.email() + " already exists");
         }
 
@@ -49,17 +54,23 @@ public class AuthService {
                 .build();
 
         user = userRepository.save(user);
+        log.info("User registered: email={}, role={}", maskEmail(request.email()), Role.ENGINEER);
         return issueTokenPair(user);
     }
 
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+                .orElseThrow(() -> {
+                    log.warn("Login failed — invalid credentials: {}", maskEmail(request.email()));
+                    return new BadCredentialsException("Invalid email or password");
+                });
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            log.warn("Login failed — invalid credentials: {}", maskEmail(request.email()));
             throw new BadCredentialsException("Invalid email or password");
         }
 
+        log.info("User logged in: email={}", maskEmail(request.email()));
         return issueTokenPair(user);
     }
 
@@ -84,6 +95,7 @@ public class AuthService {
 
         redisTemplate.delete(redisKey);
 
+        log.info("Token refreshed: userId={}", userId);
         return issueTokenPair(user);
     }
 
@@ -106,6 +118,7 @@ public class AuthService {
         }
 
         redisTemplate.delete(SecurityConstants.REDIS_REFRESH_PREFIX + userId);
+        log.info("User logged out: userId={}", userId);
     }
 
     private AuthResponse issueTokenPair(User user) {
@@ -121,5 +134,11 @@ public class AuthService {
                 TimeUnit.SECONDS);
 
         return new AuthResponse(accessToken, refreshToken, SecurityConstants.TOKEN_TYPE, 15 * 60);
+    }
+
+    private static String maskEmail(String email) {
+        if (email == null || !email.contains("@")) return "***";
+        int atIndex = email.indexOf('@');
+        return email.charAt(0) + "***" + email.substring(atIndex);
     }
 }

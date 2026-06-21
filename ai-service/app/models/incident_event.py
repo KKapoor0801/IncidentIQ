@@ -15,6 +15,7 @@ class IncidentCreatedEvent(BaseModel):
     reporter_id: UUID = Field(alias="reporterId")
     created_at: datetime = Field(alias="createdAt")
     schema_version: str = Field(alias="schemaVersion")
+    trace_id: str | None = Field(default=None, alias="traceId")
 
 
 class IncidentUpdatedEvent(BaseModel):
@@ -29,3 +30,4 @@ class IncidentUpdatedEvent(BaseModel):
     requires_reprocessing: bool = Field(alias="requiresReprocessing")
     updated_at: datetime = Field(alias="updatedAt")
     schema_version: str = Field(alias="schemaVersion")
+    trace_id: str | None = Field(default=None, alias="traceId")

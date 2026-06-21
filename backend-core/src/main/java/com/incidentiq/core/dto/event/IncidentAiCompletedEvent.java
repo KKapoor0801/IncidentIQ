@@ -13,12 +13,13 @@ public record IncidentAiCompletedEvent(
         BigDecimal confidenceScore,
         String modelUsed,
         Instant completedAt,
-        String schemaVersion
+        String schemaVersion,
+        String traceId
 ) {
     public static IncidentAiCompletedEvent from(UUID incidentId, String category, String priority,
-                                                 BigDecimal confidenceScore, String modelUsed) {
+                                                 BigDecimal confidenceScore, String modelUsed, String traceId) {
         return new IncidentAiCompletedEvent(
                 UUID.randomUUID(), "INCIDENT_AI_COMPLETED", incidentId, category, priority,
-                confidenceScore, modelUsed, Instant.now(), "1.0");
+                confidenceScore, modelUsed, Instant.now(), "1.0", traceId);
     }
 }

@@ -60,6 +60,8 @@ class ElasticsearchClient:
 
             payload = {"query": query, "size": size}
 
+            logger.debug("es_keyword_search_query", index=index, query=query_text[:80])
+
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.post(
                     f"{self._base_url}/{index}/_search",
@@ -70,6 +72,8 @@ class ElasticsearchClient:
                 data = resp.json()
 
             hits = data.get("hits", {}).get("hits", [])
+            top_score = hits[0]["_score"] if hits else None
+            logger.info("es_keyword_search_completed", index=index, hit_count=len(hits), top_score=top_score)
             return [
                 {
                     "_id": h["_id"],

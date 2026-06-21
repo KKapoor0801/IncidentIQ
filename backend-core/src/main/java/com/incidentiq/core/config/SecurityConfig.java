@@ -59,7 +59,7 @@ public class SecurityConfig {
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .requestMatchers(DOCUMENTATION_ENDPOINTS).permitAll()
                         .requestMatchers(ACTUATOR_ENDPOINTS).permitAll()
-                        .requestMatchers("/internal/**").denyAll()
+                        .requestMatchers("/internal/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

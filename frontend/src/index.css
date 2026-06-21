@@ -1,12 +1,67 @@
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* Priority colors */
+  --priority-p1-bg: #fef2f2;
+  --priority-p1-text: #dc2626;
+  --priority-p1-border: #fecaca;
+  --priority-p2-bg: #fff7ed;
+  --priority-p2-text: #ea580c;
+  --priority-p2-border: #fed7aa;
+  --priority-p3-bg: #fefce8;
+  --priority-p3-text: #ca8a04;
+  --priority-p3-border: #fef08a;
+  --priority-p4-bg: #f9fafb;
+  --priority-p4-text: #6b7280;
+  --priority-p4-border: #e5e7eb;
+
+  /* Status colors */
+  --status-open-bg: #eff6ff;
+  --status-open-text: #2563eb;
+  --status-open-border: #bfdbfe;
+  --status-in-progress-bg: #faf5ff;
+  --status-in-progress-text: #9333ea;
+  --status-in-progress-border: #e9d5ff;
+  --status-resolved-bg: #f0fdf4;
+  --status-resolved-text: #16a34a;
+  --status-resolved-border: #bbf7d0;
+  --status-closed-bg: #f9fafb;
+  --status-closed-text: #6b7280;
+  --status-closed-border: #e5e7eb;
+}
+
+.dark {
+  --priority-p1-bg: #450a0a;
+  --priority-p1-text: #f87171;
+  --priority-p1-border: #7f1d1d;
+  --priority-p2-bg: #431407;
+  --priority-p2-text: #fb923c;
+  --priority-p2-border: #7c2d12;
+  --priority-p3-bg: #422006;
+  --priority-p3-text: #facc15;
+  --priority-p3-border: #713f12;
+  --priority-p4-bg: #1f2937;
+  --priority-p4-text: #9ca3af;
+  --priority-p4-border: #374151;
+
+  --status-open-bg: #1e3a5f;
+  --status-open-text: #60a5fa;
+  --status-open-border: #1e40af;
+  --status-in-progress-bg: #3b0764;
+  --status-in-progress-text: #c084fc;
+  --status-in-progress-border: #581c87;
+  --status-resolved-bg: #052e16;
+  --status-resolved-text: #4ade80;
+  --status-resolved-border: #14532d;
+  --status-closed-bg: #1f2937;
+  --status-closed-text: #9ca3af;
+  --status-closed-border: #374151;
 }
 
 body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }

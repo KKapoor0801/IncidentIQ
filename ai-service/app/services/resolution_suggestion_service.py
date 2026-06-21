@@ -14,6 +14,7 @@ SYSTEM_PROMPT = (
 
 
 async def suggest_resolution(title: str, description: str) -> str | None:
+    logger.debug("starting_resolution_suggestion", title=title[:50])
     runbook_hits = await es_client.search_runbooks(
         f"{title} {description}", top_k=3,
     )
