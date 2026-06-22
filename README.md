@@ -2,23 +2,28 @@
 
 An AI-powered Incident Intelligence Platform that automatically categorizes, prioritizes, and suggests resolutions for operational incidents using a local LLM (Ollama). Built as a polyglot, event-driven system with a React frontend, Spring Boot core service, FastAPI AI worker, and Kafka-based async processing.
 
+## Who Uses It & How
+
+IncidentIQ is built for engineering organizations where **the person who detects a problem is often not the person who resolves it**. The typical flow:
+
+| Role | How they use IncidentIQ |
+|------|------------------------|
+| **On-call Engineer** | Detects an alert at 2 AM, creates an incident with a title and description in 30 seconds, moves on to the next alert. The AI handles classification — they don't need to decide if it's P1 or P2, or whether it's a database vs. infra issue. |
+| **Resolving Engineer** | Picks up an already-categorized, already-prioritized incident with an AI-generated resolution suggestion. Even if the incident is outside their domain (a payments engineer paged for a database issue), the matched runbook tells them exactly what commands to run. |
+| **Incident Manager / Team Lead** | Views the dashboard for real-time counts (open, P1, in-progress). Uses consistently AI-labeled categories and priorities for trend analysis, SLA reporting, and staffing decisions — data that's unreliable when engineers manually categorize differently. |
+| **VIEWER (Stakeholders)** | Monitors incident status in read-only mode — product managers, executives, or customer support teams who need visibility without modification access. |
+
+The core value proposition: **the AI doesn't replace engineers — it removes the 10-15 minute manual triage step so engineers go straight to resolution**, and it surfaces institutional knowledge (runbooks, past resolutions) that would otherwise live in someone's head or a buried wiki page.
+
 ## Impact & Engineering Highlights
 
-- **Automated incident triage** by classifying incidents into a 6-class taxonomy and assigning P1–P4 priority with confidence scoring via a local LLM, eliminating manual categorization bottleneck during on-call rotations
-- **Maintained < 200ms incident creation latency** (observed 10–50ms in testing) by designing a fully async AI pipeline using Kafka (6 partitions, keyed by incidentId for ordering guarantees), decoupling LLM inference (3–15s per call, ~25s total pipeline) from the synchronous user-facing API path
-- **Built a keyword-matched resolution suggestion engine** querying Elasticsearch across 12 runbooks and 25 historical incidents with multi_match (title^2 boost), then prompting the LLM with matched context — delivering actionable remediation steps within 20–30s of incident creation
-- **Architected a polyglot, event-driven system** spanning 4 tiers (React 19, Spring Boot 4 / Java 21, Python FastAPI, Kafka) with 9 containerized services, supporting horizontal scaling of AI workers up to 6 concurrent consumers (matching Kafka partition count)
-- **Reduced DB read load on hot paths** using Redis cache-aside pattern: incident detail cache (10min TTL), paginated list cache (30s TTL with monotonic version-counter invalidation — zero wildcard key scans), and dashboard aggregate cache refreshed every 60s via `@Scheduled`
-- **Designed at-least-once AI processing guarantee** via self-healing failure pipeline: Kafka DLQ captures failed events with full error context, scheduled reprocessing job retries `aiProcessed=false` incidents every 5 min, circuit breaker (3 retries, exponential backoff) on all cross-service calls
-- **Implemented stateless JWT auth with refresh token rotation** using HS256 signing, Redis-backed blacklist (TTL = remaining token life), refresh token rotation on every use (7-day expiry), and BCrypt cost-12 password hashing — access tokens in-memory only (never localStorage), silent refresh on 401
-- **Enforced incident state machine** (OPEN → IN_PROGRESS → RESOLVED → CLOSED) with RBAC-gated transitions across 3 roles (VIEWER/ENGINEER/ADMIN), optimistic locking (`@Version`) mapped to 409 CONFLICT preventing concurrent update data loss
-- **Built complete audit trail** — every status, priority, assignee, and resolution change recorded in `incident_history` with acting userId and timestamp, supporting compliance requirements and post-incident reviews
-- **Implemented end-to-end distributed tracing** via X-Trace-Id propagated through HTTP request → Spring Boot MDC → Kafka event payload → FastAPI structlog context → REST callback, enabling single-ID correlation across all services
-- **Designed and built a responsive React 19 SPA** with Tailwind CSS, React Query (30s stale time), Zustand for auth/theme state, role-gated UI controls, dark mode (system preference + manual toggle), Cmd+K search with debounced ES queries, and AI polling with 120s timeout fallback
-- **Implemented Redis-backed rate limiting** using token bucket pattern (INCR + EXPIRE, 10 req/60s rolling window) on incident creation and login endpoints, preventing brute-force and abuse without external API gateway dependency
-- **Integrated Elasticsearch 9 for full-text keyword search** with async indexing on write (`@Async`) and graceful empty-index handling — no embeddings, no vector DB (intentionally deferred to MVP2)
-- **Built idempotent seed data pipeline** — single Python script indexes 12 runbooks + 10 service metadata entries to ES and 25 historical incidents to Postgres using deterministic IDs (`ON CONFLICT DO NOTHING`), safe for repeated execution
-- **Produced complete OpenAPI documentation** with springdoc-openapi, Swagger UI at `/swagger-ui.html`, 6 tag groups, bearerAuth security scheme, and `/internal/**` paths excluded from public spec
+- **10–50ms incident creation latency** — async AI pipeline via Kafka (6 partitions, keyed by incidentId) decouples 3–15s LLM inference from the user-facing API; AI classification completes in 20–30s in the background across 3 sequential Ollama calls
+- **4-tier polyglot architecture** — React 19 + Spring Boot 4 (Java 21) + Python FastAPI + Kafka, with 9 containerized services; AI workers scale horizontally up to 6 consumers matching Kafka partition count
+- **At-least-once AI processing** — Kafka DLQ captures failures, scheduled job retries unprocessed incidents every 5 min, circuit breaker (3 retries, exponential backoff) on all cross-service calls; no incident silently drops
+- **Redis cache-aside** with version-counter list invalidation (no wildcard key scans) — 10min detail TTL, 30s list TTL, 60s dashboard refresh, Redis-backed rate limiting (10 req/60s), JWT blacklist with TTL matching token expiry
+- **End-to-end distributed tracing** — X-Trace-Id propagated through HTTP → Spring Boot MDC → Kafka payload → FastAPI structlog → REST callback, correlating a single request across all 4 services
+- **Keyword-matched resolution engine** — Elasticsearch multi_match (title^2 boost) across 12 runbooks and 25 historical incidents, matched context fed to LLM for actionable remediation steps with concrete commands
+- **3-tier RBAC with audit trail** — VIEWER/ENGINEER/ADMIN enforced via JWT + @PreAuthorize, incident state machine (OPEN→IN_PROGRESS→RESOLVED→CLOSED) with optimistic locking, every field change recorded in incident_history
 
 ## Screenshots
 
@@ -41,7 +46,7 @@ The detail view shows the full incident with its AI-generated analysis. After an
 
 1. **Users create incidents** via a React dashboard describing an operational issue (e.g., "Payment gateway returning 500s")
 2. **Spring Boot** persists the incident, indexes it for search, and fires a Kafka event
-3. **FastAPI** consumes the event and calls a local LLM (llama3.1:8b via Ollama) to:
+3. **FastAPI** consumes the event and calls a local LLM (llama3.2:3b via Ollama) to:
    - **Categorize** the incident (PAYMENTS, AUTH, INFRA, DATABASE, NETWORK, UNKNOWN)
    - **Prioritize** it (P1–P4 with a confidence score)
    - **Suggest a resolution** by keyword-matching against runbooks and past resolved incidents, then prompting the LLM with the matched context
@@ -55,7 +60,7 @@ The detail view shows the full incident with its AI-generated analysis. After an
 | Frontend | React 19, Vite, TypeScript, Tailwind CSS, React Query, Zustand | SPA with auth, incident CRUD, search, dashboard |
 | Core API | Spring Boot 4, Java 21, Spring Security, Spring Data JPA | System of record, JWT auth, RBAC, REST API |
 | AI Service | Python 3.12, FastAPI, Pydantic, aiokafka, httpx, tenacity, structlog | Kafka consumer, LLM orchestration, callback client |
-| LLM | Ollama (llama3.1:8b) | Local inference for categorization, prioritization, resolution |
+| LLM | Ollama (llama3.2:3b) | Local inference for categorization, prioritization, resolution |
 | Database | PostgreSQL 16 | Primary datastore (users, incidents, history, comments) |
 | Cache | Redis 7 | JWT blacklist, incident caching, rate limiting, dashboard aggregates |
 | Search | Elasticsearch 9 | Keyword search over incidents, runbooks, service metadata |
@@ -117,7 +122,7 @@ docker ps --format "{{.Names}} {{.Status}}" | grep incidentiq
 ### Step 2: Pull the LLM Model
 
 ```bash
-docker exec incidentiq-ollama ollama pull llama3.1:8b
+docker exec incidentiq-ollama ollama pull llama3.2:3b
 ```
 
 This downloads ~4.7GB. AI features won't work until this completes. You can proceed with the next steps while it downloads.
